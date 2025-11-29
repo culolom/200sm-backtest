@@ -161,9 +161,8 @@ def compute_rolling_stats(
 ):
     """
     計算滾動指標：Sharpe / MDD / CAGR / Beta。
-
-    - window 預設 252 交易日（約 1 年）。
     """
+
     def roll_sharpe(x: pd.Series):
         std = x.std()
         return (x.mean() / std) * np.sqrt(252) if std > 0 else np.nan
@@ -281,6 +280,11 @@ def format_currency(value: float) -> str:
         return f"{value:,.0f} 元"
     except Exception:
         return "—"
+
+
+def nz(x, default=0.0):
+    """把 NaN 轉成 0（或自訂值），避免圖表炸裂。"""
+    return float(np.nan_to_num(x, nan=default))
 
 
 # ================================
@@ -488,7 +492,7 @@ if st.button("開始回測 🚀"):
     st.plotly_chart(fig, use_container_width=True)
 
     # ================================
-    # 1）LRS 策略信號回放（移至圖表下方）
+    # 1）LRS 策略信號回放
     # ================================
     st.markdown("## 🎯 LRS 策略信號回放")
 
@@ -518,34 +522,30 @@ if st.button("開始回測 🚀"):
     # ================================
     # 2）KPI Summary Cards（LRS vs Buy&Hold）
     # ================================
-
-
     st.markdown("## 📌 回測總覽 Summary")
-    
+
     asset_gap_pct = ((equity_lrs_final / equity_bh_final) - 1) * 100 if equity_bh_final != 0 else 0.0
     cagr_delta_pct = (cagr_lrs - cagr_bh) * 100 if (not np.isnan(cagr_lrs) and not np.isnan(cagr_bh)) else 0.0
     vol_delta_pct = (vol_lrs - vol_bh) * 100 if (not np.isnan(vol_lrs) and not np.isnan(vol_bh)) else 0.0
     mdd_delta_pct = (mdd_lrs - mdd_bh) * 100 if (not np.isnan(mdd_lrs) and not np.isnan(mdd_bh)) else 0.0
-    
-    # -------------------------------
+
     # 上排：LRS
-    # -------------------------------
     row_lrs = st.columns(4)
-    
+
     with row_lrs[0]:
         st.metric(
             label="最終資產（LRS）",
             value=format_currency(equity_lrs_final),
             delta=f"較 Buy&Hold {asset_gap_pct:+.2f}%"
         )
-    
+
     with row_lrs[1]:
         st.metric(
             label="年化報酬（CAGR, LRS）",
             value=f"{cagr_lrs:.2%}" if not np.isnan(cagr_lrs) else "—",
             delta=f"較 Buy&Hold {cagr_delta_pct:+.2f}%"
         )
-    
+
     with row_lrs[2]:
         st.metric(
             label="年化波動率（LRS）",
@@ -553,7 +553,7 @@ if st.button("開始回測 🚀"):
             delta=f"較 Buy&Hold {vol_delta_pct:+.2f}%",
             delta_color="inverse"
         )
-    
+
     with row_lrs[3]:
         st.metric(
             label="最大回撤（LRS）",
@@ -561,12 +561,10 @@ if st.button("開始回測 🚀"):
             delta=f"較 Buy&Hold {mdd_delta_pct:+.2f}%",
             delta_color="inverse"
         )
-    
-    # -------------------------------
+
     # 下排：Buy & Hold
-    # -------------------------------
     row_bh = st.columns(4)
-    
+
     with row_bh[0]:
         st.metric(
             label="最終資產（Buy&Hold）",
@@ -574,7 +572,7 @@ if st.button("開始回測 🚀"):
             delta=f"較 LRS {-asset_gap_pct:+.2f}%",
             delta_color="inverse"
         )
-    
+
     with row_bh[1]:
         st.metric(
             label="年化報酬（CAGR, Buy&Hold）",
@@ -582,7 +580,7 @@ if st.button("開始回測 🚀"):
             delta=f"較 LRS {-cagr_delta_pct:+.2f}%",
             delta_color="inverse"
         )
-    
+
     with row_bh[2]:
         st.metric(
             label="年化波動率（Buy&Hold）",
@@ -590,7 +588,7 @@ if st.button("開始回測 🚀"):
             delta=f"較 LRS {-vol_delta_pct:+.2f}%",
             delta_color="inverse"
         )
-    
+
     with row_bh[3]:
         st.metric(
             label="最大回撤（Buy&Hold）",
@@ -598,149 +596,20 @@ if st.button("開始回測 🚀"):
             delta=f"較 LRS {-mdd_delta_pct:+.2f}%",
             delta_color="inverse"
         )
-    
 
     # ================================
     # 3）交易統計（小卡片）
     # ================================
     st.markdown("## 📈 交易統計")
-    
+
     trade_col1, trade_col2 = st.columns(2)
     with trade_col1:
         st.metric(label="📥 買進次數", value=buy_count)
     with trade_col2:
         st.metric(label="📤 賣出次數", value=sell_count)
-    
-    # ================================
-    # 4）策略 vs 指數：風險雷達圖
-    # ================================
-
-    st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖")
-    
-    radar_categories = [
-        "年化報酬",
-        "最大回撤(反向)",
-        "波動率(反向)",
-        "夏普值",
-        "索提諾值",
-    ]
-    
-    def nz(x):
-        return float(np.nan_to_num(x, nan=0.0))
-    
-    radar_lrs = [
-        nz(cagr_lrs),
-        nz(1 - mdd_lrs),
-        nz(1 - vol_lrs),
-        nz(sharpe_lrs),
-        nz(sortino_lrs),
-    ]
-    
-    radar_bh = [
-        nz(cagr_bh),
-        nz(1 - mdd_bh),
-        nz(1 - vol_bh),
-        nz(sharpe_bh),
-        nz(sortino_bh),
-    ]
-    
-    radar_fig = go.Figure()
-    radar_fig.add_trace(go.Scatterpolar(
-        r=radar_lrs,
-        theta=radar_categories,
-        fill="toself",
-        name="LRS 策略",
-        line=dict(color="green", width=2)
-    ))
-    radar_fig.add_trace(go.Scatterpolar(
-        r=radar_bh,
-        theta=radar_categories,
-        fill="toself",
-        name="Buy & Hold",
-        line=dict(color="gray", width=2)
-    ))
-    
-    radar_fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-        showlegend=True,
-        height=600,
-    )
-    st.plotly_chart(radar_fig, use_container_width=True)
-
 
     # ================================
-    # 5）Portfolio Summary — 資產摘要
-    # ================================
-    st.markdown("## 📦 Portfolio Summary — 資產摘要")
-
-    highest_value = df["LRS_Capital"].max()
-    lowest_value = df["LRS_Capital"].min()
-
-    # 月報酬
-    df_monthly = df["Equity_LRS"].resample("M").last().pct_change()
-    best_month = df_monthly.max()
-    worst_month = df_monthly.min()
-
-    summ_col1, summ_col2, summ_col3, summ_col4 = st.columns(4)
-
-    with summ_col1:
-        st.metric(label="💰 最高資產", value=format_currency(highest_value))
-
-    with summ_col2:
-        st.metric(label="📉 最低資產", value=format_currency(lowest_value))
-
-    with summ_col3:
-        st.metric(
-            label="📈 最佳月份報酬",
-            value=f"{best_month:.2%}" if not np.isnan(best_month) else "—",
-        )
-
-    with summ_col4:
-        st.metric(
-            label="📉 最差月份報酬",
-            value=f"{worst_month:.2%}" if not np.isnan(worst_month) else "—",
-            delta_color="inverse",
-        )
-
-    # ================================
-    # 6）月度績效熱力圖（ETFDB style）
-    # ================================
-    st.markdown("## 📅 月度績效熱力圖")
-
-    # 取月度報酬
-    df_month = df["Equity_LRS"].resample("M").last().pct_change().dropna()
-    df_month.index = df_month.index.to_period("M")
-
-    # 轉成 pivot（Year × Month）
-    month_table = df_month.to_frame("return")
-    month_table["Year"] = month_table.index.year
-    month_table["Month"] = month_table.index.month
-
-    pivot = month_table.pivot(index="Year", columns="Month", values="return")
-    pivot = pivot.sort_index(ascending=False)
-
-    # heatmap（Plotly）
-    heatmap_fig = go.Figure(
-        data=go.Heatmap(
-            z=pivot.values,
-            x=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-            y=pivot.index,
-            colorscale="RdYlGn",
-            zmin=-0.2,
-            zmax=0.2,
-            colorbar=dict(title="Return", ticksuffix="%"),
-            hovertemplate="年份 %{y}<br>月份 %{x}<br>報酬 %{z:.2%}<extra></extra>",
-        )
-    )
-
-    heatmap_fig.update_layout(height=350, margin=dict(l=20, r=20, t=30, b=20))
-    st.plotly_chart(heatmap_fig, use_container_width=True)
-
-
-
-
-    # ================================
-    # 7）Sharpe / MDD 儀表板（Gauge）
+    # 4）Sharpe / MDD 儀表板（Gauge）
     # ================================
     st.markdown("## 🧭 Sharpe / MDD 儀表板")
 
@@ -749,7 +618,7 @@ if st.button("開始回測 🚀"):
     # Sharpe
     sharpe_fig = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=sharpe_lrs,
+        value=nz(sharpe_lrs),
         title={"text": "Sharpe Ratio"},
         gauge={
             "axis": {"range": [0, 3]},
@@ -767,7 +636,7 @@ if st.button("開始回測 🚀"):
     # MDD (越低越好 → 反向 gauge)
     mdd_fig = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=mdd_lrs * 100,  # ％
+        value=nz(mdd_lrs * 100),
         title={"text": "最大回撤 (%)"},
         gauge={
             "axis": {"range": [0, 50]},
@@ -782,21 +651,19 @@ if st.button("開始回測 🚀"):
     mdd_fig.update_layout(height=300)
     g2.plotly_chart(mdd_fig, use_container_width=True)
 
-
-
     # ================================
-    # 8）Calmar Ratio 儀表板（Gauge）
+    # 5）Calmar Ratio 儀表板（Gauge）
     # ================================
     st.markdown("## 🧨 Calmar Ratio — 報酬 / 風險 綜合指標")
 
     # 避免除以零
-    calmar = cagr_lrs / mdd_lrs if (mdd_lrs > 0 and not np.isnan(cagr_lrs)) else 0.0
+    calmar = cagr_lrs / mdd_lrs if (mdd_lrs > 0 and not np.isnan(cagr_lrs)) else np.nan
 
     cal_col = st.columns(1)[0]
 
     calmar_fig = go.Figure(go.Indicator(
         mode="gauge+number",
-        value=calmar,
+        value=nz(calmar),
         number={"valueformat": ".2f"},
         title={"text": "Calmar Ratio"},
         gauge={
@@ -815,10 +682,10 @@ if st.button("開始回測 🚀"):
     cal_col.plotly_chart(calmar_fig, use_container_width=True)
 
     # ================================
-    # 風險雷達圖（完整 + 強化版本）
+    # 6）風險雷達圖（進階版）
     # ================================
     st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖（進階版）")
-    
+
     radar_categories = [
         "年化報酬",
         "最大回撤(反向)",
@@ -829,14 +696,11 @@ if st.button("開始回測 🚀"):
         "勝率",
         "最大連跌(反向)"
     ]
-    
-    def nz(x):
-        return float(np.nan_to_num(x, nan=0.0))
-    
+
     # 勝率
     win_rate_lrs = (df["Strategy_Return"] > 0).mean()
     win_rate_bh = (df["Return"] > 0).mean()
-    
+
     # 最大連跌（策略）
     loss_streak = max_loss_streak = 0
     for r in df["Strategy_Return"]:
@@ -845,7 +709,7 @@ if st.button("開始回測 🚀"):
             max_loss_streak = max(max_loss_streak, loss_streak)
         else:
             loss_streak = 0
-    
+
     # 最大連跌（Buy&Hold）
     loss_streak_bh = max_loss_streak_bh = 0
     for r in df["Return"]:
@@ -854,7 +718,7 @@ if st.button("開始回測 🚀"):
             max_loss_streak_bh = max(max_loss_streak_bh, loss_streak_bh)
         else:
             loss_streak_bh = 0
-    
+
     radar_lrs = [
         nz(cagr_lrs),
         nz(1 - mdd_lrs),
@@ -865,43 +729,43 @@ if st.button("開始回測 🚀"):
         nz(win_rate_lrs),
         nz(1 - max_loss_streak / 50),
     ]
-    
+
     radar_bh = [
         nz(cagr_bh),
         nz(1 - mdd_bh),
         nz(1 - vol_bh),
         nz(sharpe_bh),
         nz(sortino_bh),
-        nz(cagr_bh / mdd_bh if mdd_bh > 0 else 0),
+        nz(cagr_bh / mdd_bh if mdd_bh > 0 else np.nan),
         nz(win_rate_bh),
         nz(1 - max_loss_streak_bh / 50),
     ]
-    
-    radar_fig = go.Figure()
-    radar_fig.add_trace(go.Scatterpolar(
+
+    radar_fig_adv = go.Figure()
+    radar_fig_adv.add_trace(go.Scatterpolar(
         r=radar_lrs,
         theta=radar_categories,
         fill="toself",
         name="LRS 策略",
         line=dict(color="green", width=2)
     ))
-    radar_fig.add_trace(go.Scatterpolar(
+    radar_fig_adv.add_trace(go.Scatterpolar(
         r=radar_bh,
         theta=radar_categories,
         fill="toself",
         name="Buy & Hold",
         line=dict(color="gray", width=2)
     ))
-    
-    radar_fig.update_layout(
+
+    radar_fig_adv.update_layout(
         polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
         showlegend=True,
         height=600,
     )
-    st.plotly_chart(radar_fig, use_container_width=True)
+    st.plotly_chart(radar_fig_adv, use_container_width=True)
 
     # ================================
-    # 9）Rolling 指標（Sharpe / MDD / CAGR / Beta）
+    # 7）Rolling 指標（Sharpe / MDD / CAGR / Beta）
     # ================================
     st.markdown("## 📈 Rolling 指標")
 
@@ -943,7 +807,7 @@ if st.button("開始回測 🚀"):
     st.plotly_chart(roll_fig, use_container_width=True)
 
     # ================================
-    # 10）回撤分析表（含修復天數）
+    # 8）回撤分析表（含修復天數）
     # ================================
     st.markdown("## 📉 回撤分析表")
 
@@ -957,7 +821,7 @@ if st.button("開始回測 🚀"):
         st.info("尚未觀察到回撤事件。")
 
     # ================================
-    # 11）Monte Carlo 模擬（分位數視覺化）
+    # 9）Monte Carlo 模擬（分位數視覺化）
     # ================================
     st.markdown("## 🎲 Monte Carlo 模擬")
 
@@ -994,4 +858,3 @@ if st.button("開始回測 🚀"):
         yaxis_title="累積報酬 (起點=1)",
     )
     st.plotly_chart(mc_fig, use_container_width=True)
-    
