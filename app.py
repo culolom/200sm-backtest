@@ -692,18 +692,7 @@ except Exception:
     alpha = np.nan
     beta = np.nan
 
-# ================================
-# Calmar Ratio
-# ================================
-if mdd_lrs > 0:
-    calmar_lrs = cagr_lrs / mdd_lrs
-else:
-    calmar_lrs = np.nan
 
-if mdd_bh > 0:
-    calmar_bh = cagr_bh / mdd_bh
-else:
-    calmar_bh = np.nan
 
 
 # ================================
@@ -736,6 +725,7 @@ with k8:
     st.metric("📡 Beta", f"{beta:.2f}" if not np.isnan(beta) else "—")
 with k9:
     st.metric("💵 最終資產（LRS）", format_currency(equity_lrs_final))
+
 
 
 
