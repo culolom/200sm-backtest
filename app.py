@@ -634,6 +634,36 @@ if st.button("開始回測 🚀"):
 
 
 
+    # ================================
+    # 9）Calmar Ratio 儀表板（Gauge）
+    # ================================
+    st.markdown("## 🧨 Calmar Ratio — 報酬 / 風險 綜合指標")
+
+    # 避免除以零
+    calmar = cagr_lrs / mdd_lrs if (mdd_lrs > 0 and not np.isnan(cagr_lrs)) else 0.0
+
+    cal_col = st.columns(1)[0]
+
+    calmar_fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=calmar,
+        number={"valueformat": ".2f"},
+        title={"text": "Calmar Ratio"},
+        gauge={
+            "axis": {"range": [0, 5]},  # 常見趨勢策略範圍
+            "bar": {"color": "#1e90ff"},
+            "steps": [
+                {"range": [0, 1], "color": "#ff6666"},    # 差
+                {"range": [1, 2], "color": "#ffcc66"},    # 普通
+                {"range": [2, 3], "color": "#99cc66"},    # 良好
+                {"range": [3, 5], "color": "#33cc33"},    # 非常好（CTA 基金等級）
+            ],
+        },
+    ))
+
+    calmar_fig.update_layout(height=300)
+    cal_col.plotly_chart(calmar_fig, use_container_width=True)
+
 
 
 
