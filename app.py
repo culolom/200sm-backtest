@@ -492,7 +492,8 @@ if st.button("開始回測 🚀"):
     # ================================
     # 4）策略 vs 指數：風險雷達圖
     # ================================
-    st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖（進階版）")
+
+    st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖")
     
     radar_categories = [
         "年化報酬",
@@ -500,9 +501,6 @@ if st.button("開始回測 🚀"):
         "波動率(反向)",
         "夏普值",
         "索提諾值",
-        "Calmar Ratio",
-        "勝率",
-        "最大連跌(反向)"
     ]
     
     def nz(x):
@@ -514,9 +512,6 @@ if st.button("開始回測 🚀"):
         nz(1 - vol_lrs),
         nz(sharpe_lrs),
         nz(sortino_lrs),
-        nz(calmar),
-        nz(win_rate_lrs),
-        nz(1 - max_loss_streak / 50),   # 正規化（假設 50 天以上都視同最差）
     ]
     
     radar_bh = [
@@ -525,9 +520,6 @@ if st.button("開始回測 🚀"):
         nz(1 - vol_bh),
         nz(sharpe_bh),
         nz(sortino_bh),
-        nz(cagr_bh / mdd_bh if mdd_bh > 0 else 0),
-        nz(win_rate_bh),
-        nz(1 - max_loss_streak_bh / 50),
     ]
     
     radar_fig = go.Figure()
@@ -547,11 +539,12 @@ if st.button("開始回測 🚀"):
     ))
     
     radar_fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),  # 標準化後 0~1 更容易讀
+        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
         showlegend=True,
         height=600,
     )
     st.plotly_chart(radar_fig, use_container_width=True)
+
 
     # ================================
     # 5）Portfolio Summary — 資產摘要
