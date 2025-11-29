@@ -602,57 +602,6 @@ if st.button("開始回測 🚀"):
     with trade_col2:
         st.metric(label="📤 賣出次數", value=sell_count)
 
-    # ================================
-    # 4）策略 vs 指數：風險雷達圖（簡易版）
-    # ================================
-    st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖（簡易版）")
-
-    radar_categories_simple = [
-        "年化報酬",
-        "最大回撤(反向)",
-        "波動率(反向)",
-        "夏普值",
-        "索提諾值",
-    ]
-
-    radar_lrs_simple = [
-        nz(cagr_lrs),
-        nz(1 - mdd_lrs),
-        nz(1 - vol_lrs),
-        nz(sharpe_lrs),
-        nz(sortino_lrs),
-    ]
-
-    radar_bh_simple = [
-        nz(cagr_bh),
-        nz(1 - mdd_bh),
-        nz(1 - vol_bh),
-        nz(sharpe_bh),
-        nz(sortino_bh),
-    ]
-
-    radar_fig_simple = go.Figure()
-    radar_fig_simple.add_trace(go.Scatterpolar(
-        r=radar_lrs_simple,
-        theta=radar_categories_simple,
-        fill="toself",
-        name="LRS 策略",
-        line=dict(color="green", width=2)
-    ))
-    radar_fig_simple.add_trace(go.Scatterpolar(
-        r=radar_bh_simple,
-        theta=radar_categories_simple,
-        fill="toself",
-        name="Buy & Hold",
-        line=dict(color="gray", width=2)
-    ))
-
-    radar_fig_simple.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-        showlegend=True,
-        height=500,
-    )
-    st.plotly_chart(radar_fig_simple, use_container_width=True)
 
     # ================================
     # 5）Portfolio Summary — 資產摘要
