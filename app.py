@@ -589,6 +589,49 @@ if st.button("開始回測 🚀"):
 
 
 
+    # ================================
+    # 8）Sharpe / MDD 儀表板（Gauge）
+    # ================================
+    st.markdown("## 🧭 Sharpe / MDD 儀表板")
+
+    g1, g2 = st.columns(2)
+
+    # Sharpe
+    sharpe_fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=sharpe_lrs,
+        title={"text": "Sharpe Ratio"},
+        gauge={
+            "axis": {"range": [0, 3]},
+            "bar": {"color": "green"},
+            "steps": [
+                {"range": [0, 1], "color": "#ff6666"},
+                {"range": [1, 2], "color": "#ffcc66"},
+                {"range": [2, 3], "color": "#66cc66"},
+            ],
+        },
+    ))
+    sharpe_fig.update_layout(height=300)
+    g1.plotly_chart(sharpe_fig, use_container_width=True)
+
+    # MDD (越低越好 → 反向 gauge)
+    mdd_fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=mdd_lrs * 100,  # ％
+        title={"text": "最大回撤 (%)"},
+        gauge={
+            "axis": {"range": [0, 50]},
+            "bar": {"color": "red"},
+            "steps": [
+                {"range": [0, 10], "color": "#66cc66"},
+                {"range": [10, 25], "color": "#ffcc66"},
+                {"range": [25, 50], "color": "#ff6666"},
+            ],
+        },
+    ))
+    mdd_fig.update_layout(height=300)
+    g2.plotly_chart(mdd_fig, use_container_width=True)
+
 
 
 
