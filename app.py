@@ -396,33 +396,71 @@ if st.button("開始回測 🚀"):
             delta_color="inverse",
         )
 
-    # ================================
-    # 2）Heatmap 指標比較表（穩定版）
-    # ================================
-    st.markdown("## 📊 指標比較（LRS vs Buy & Hold）")
+# ================================
+# 📊 指標比較（LRS vs Buy & Hold）— KPI 版
+# ================================
+st.markdown("## 📊 指標比較（LRS vs Buy & Hold）")
 
-    col_hm1, col_hm2 = st.columns(2)
+def kpi_pair(title, lrs_value, bh_value, reverse=False):
+    """
+    reverse=False → 值越大越好（如 CAGR, Sharpe）
+    reverse=True  → 值越小越好（如 MDD, Volatility）
+    """
+    col = st.container()
+    with col:
+        st.markdown(f"### {title}")
 
-    # 1) 顯示文字表
-    display_df = pd.DataFrame([
-        ["最終資產", f"{equity_lrs_final:,.0f} 元", f"{equity_bh_final:,.0f} 元"],
-        ["總報酬", f"{final_return_lrs:.2%}", f"{final_return_bh:.2%}"],
-        ["年化報酬", f"{cagr_lrs:.2%}" if not np.isnan(cagr_lrs) else "—",
-                     f"{cagr_bh:.2%}" if not np.isnan(cagr_bh) else "—"],
-        ["最大回撤", f"{mdd_lrs:.2%}" if not np.isnan(mdd_lrs) else "—",
-                     f"{mdd_bh:.2%}" if not np.isnan(mdd_bh) else "—"],
-        ["年化波動率", f"{vol_lrs:.2%}" if not np.isnan(vol_lrs) else "—",
-                      f"{vol_bh:.2%}" if not np.isnan(vol_bh) else "—"],
-        ["夏普值", f"{sharpe_lrs:.2f}" if not np.isnan(sharpe_lrs) else "—",
-                  f"{sharpe_bh:.2f}" if not np.isnan(sharpe_bh) else "—"],
-        ["索提諾值", f"{sortino_lrs:.2f}" if not np.isnan(sortino_lrs) else "—",
-                    f"{sortino_bh:.2f}" if not np.isnan(sortino_bh) else "—"],
-    ], columns=["指標名稱", "LRS 策略", "Buy & Hold"])
+        c1, c2 = st.columns(2)
 
-    with col_hm1:
-    
-        st.table(display_df)
+        # === LRS ===
+        delta_lrs = None
+        if not np.isnan(lrs_value) and not np.isnan(bh_value):
+            diff = (lrs_value - bh_value) * (100 if "報酬" in title or "回撤" in title else 1)
+            delta_lrs = f"{diff:.2f}%"
 
+        with c1:
+            st.metric(
+                label="LRS 策略",
+                value=f"{lrs_value:.2%}" if isinstance(lrs_value, float) else lrs_value,
+                delta=delta_lrs,
+                delta_color="inverse" if reverse else "normal",
+            )
+
+        # === Buy & Hold ===
+        delta_bh = None
+        if not np.isnan(lrs_value) and not np.isnan(bh_value):
+            diff = (bh_value - lrs_value) * (100 if "報酬" in title or "回撤" in title else 1)
+            delta_bh = f"{diff:.2f}%"
+
+        with c2:
+            st.metric(
+                label="Buy & Hold",
+                value=f"{bh_value:.2%}" if isinstance(bh_value, float) else bh_value,
+                delta=delta_bh,
+                delta_color="inverse" if reverse else "normal",
+            )
+
+        st.markdown("---")  # 分隔線
+        # 最終資產
+        kpi_pair("最終資產", equity_lrs_final, equity_bh_final)
+
+        # 總報酬
+        kpi_pair("總報酬", final_return_lrs, final_return_bh)
+
+        # 年化報酬 CAGR（越高越好）
+        kpi_pair("年化報酬（CAGR）", cagr_lrs, cagr_bh)
+
+        # 最大回撤（越低越好）
+        kpi_pair("最大回撤（MDD）", mdd_lrs, mdd_bh, reverse=True)
+
+        # 年化波動率（越低越好）
+        kpi_pair("年化波動率", vol_lrs, vol_bh, reverse=True)
+
+        # 夏普值（越高越好）
+        kpi_pair("夏普值（Sharpe）", sharpe_lrs, sharpe_bh)
+
+        # 索提諾值（Sortino）（越高越好）
+        kpi_pair("索提諾值（Sortino）", sortino_lrs, sortino_bh)
 
 
 
@@ -739,3 +777,4 @@ with summary:
             delta=fmt_delta((mdd_lrs - mdd_bh) * 100),
             delta_color="inverse",
         )
+
