@@ -665,3 +665,67 @@ if st.button("開始回測 🚀"):
     cal_col.plotly_chart(calmar_fig, use_container_width=True)
 
 
+# ================================
+# 📌 回測總覽 Summary（LRS vs Buy & Hold）
+# ================================
+st.markdown("## 📌 回測總覽 Summary")
+
+# 讓 NaN 變成 0 或 —
+def fmt_pct(x):
+    return "—" if np.isnan(x) else f"{x:.2%}"
+
+def fmt_delta(x):
+    return f"{x:.2f}%" if not np.isnan(x) else "—"
+
+col_L, col_R = st.columns(2)
+
+# --------------------------------------------------
+# 🔶 左邊：LRS 策略 KPI
+# --------------------------------------------------
+with col_L:
+    st.markdown("### 🚀 LRS 策略")
+
+    st.metric(
+        label="最終資產（LRS）",
+        value=format_currency(equity_lrs_final),
+        delta=fmt_pct(final_return_lrs),
+    )
+
+    st.metric(
+        label="年化報酬（CAGR）",
+        value=fmt_pct(cagr_lrs),
+        delta=fmt_delta((cagr_lrs - cagr_bh) * 100),
+    )
+
+    st.metric(
+        label="最大回撤（LRS）",
+        value=fmt_pct(mdd_lrs),
+        delta=fmt_delta((mdd_bh - mdd_lrs) * 100),
+        delta_color="inverse"
+    )
+
+# --------------------------------------------------
+# 🔵 右邊：Buy & Hold KPI
+# --------------------------------------------------
+with col_R:
+    st.markdown("### 📘 Buy & Hold")
+
+    st.metric(
+        label="最終資產（Buy & Hold）",
+        value=format_currency(equity_bh_final),
+        delta=fmt_pct(final_return_bh),
+    )
+
+    st.metric(
+        label="年化報酬（CAGR）",
+        value=fmt_pct(cagr_bh),
+        delta=fmt_delta((cagr_bh - cagr_lrs) * 100),
+    )
+
+    st.metric(
+        label="最大回撤（Buy & Hold）",
+        value=fmt_pct(mdd_bh),
+        delta=fmt_delta((mdd_lrs - mdd_bh) * 100),
+        delta_color="inverse"
+    )
+
