@@ -397,70 +397,97 @@ if st.button("開始回測 🚀"):
         )
 
 # ================================
-# 📊 指標比較（LRS vs Buy & Hold）— KPI 版
+# 📊 指標比較（卡片形式）
 # ================================
 st.markdown("## 📊 指標比較（LRS vs Buy & Hold）")
 
-def kpi_pair(title, lrs_value, bh_value, reverse=False):
-    """
-    reverse=False → 值越大越好（如 CAGR, Sharpe）
-    reverse=True  → 值越小越好（如 MDD, Volatility）
-    """
-    col = st.container()
-    with col:
+def metric_pair(title, lrs_value, bh_value, delta_lrs=None, delta_bh=None):
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
         st.markdown(f"### {title}")
 
-        c1, c2 = st.columns(2)
+    with col2:
+        st.metric(
+            label="LRS 策略",
+            value=lrs_value,
+            delta=delta_lrs,
+            delta_color="normal",
+        )
 
-        # === LRS ===
-        delta_lrs = None
-        if not np.isnan(lrs_value) and not np.isnan(bh_value):
-            diff = (lrs_value - bh_value) * (100 if "報酬" in title or "回撤" in title else 1)
-            delta_lrs = f"{diff:.2f}%"
+    with col3:
+        st.metric(
+            label="Buy & Hold",
+            value=bh_value,
+            delta=delta_bh,
+            delta_color="normal",
+        )
 
-        with c1:
-            st.metric(
-                label="LRS 策略",
-                value=f"{lrs_value:.2%}" if isinstance(lrs_value, float) else lrs_value,
-                delta=delta_lrs,
-                delta_color="inverse" if reverse else "normal",
-            )
+    st.markdown("---")
 
-        # === Buy & Hold ===
-        delta_bh = None
-        if not np.isnan(lrs_value) and not np.isnan(bh_value):
-            diff = (bh_value - lrs_value) * (100 if "報酬" in title or "回撤" in title else 1)
-            delta_bh = f"{diff:.2f}%"
 
-        with c2:
-            st.metric(
-                label="Buy & Hold",
-                value=f"{bh_value:.2%}" if isinstance(bh_value, float) else bh_value,
-                delta=delta_bh,
-                delta_color="inverse" if reverse else "normal",
-            )
+# ===== 最終資產 =====
+metric_pair(
+    "最終資產",
+    format_currency(equity_lrs_final),
+    format_currency(equity_bh_final),
+    delta_lrs=f"{final_return_lrs:.2%}",
+    delta_bh=f"{final_return_bh:.2%}",
+)
 
-        st.markdown("---")  # 分隔線
-        # 最終資產
-        kpi_pair("最終資產", equity_lrs_final, equity_bh_final)
+# ===== 總報酬 =====
+metric_pair(
+    "總報酬",
+    f"{final_return_lrs:.2%}",
+    f"{final_return_bh:.2%}",
+    delta_lrs=f"{(final_return_lrs - final_return_bh) * 100:.2f}%",
+    delta_bh=f"{(final_return_bh - final_return_lrs) * 100:.2f}%",
+)
 
-        # 總報酬
-        kpi_pair("總報酬", final_return_lrs, final_return_bh)
+# ===== 年化報酬 CAGR =====
+metric_pair(
+    "年化報酬（CAGR）",
+    f"{cagr_lrs:.2%}",
+    f"{cagr_bh:.2%}",
+    delta_lrs=f"{(cagr_lrs - cagr_bh) * 100:.2f}%",
+    delta_bh=f"{(cagr_bh - cagr_lrs) * 100:.2f}%",
+)
 
-        # 年化報酬 CAGR（越高越好）
-        kpi_pair("年化報酬（CAGR）", cagr_lrs, cagr_bh)
+# ===== 最大回撤 MDD =====
+metric_pair(
+    "最大回撤（MDD）",
+    f"{mdd_lrs:.2%}",
+    f"{mdd_bh:.2%}",
+    delta_lrs=f"{(mdd_bh - mdd_lrs) * 100:.2f}%",
+    delta_bh=f"{(mdd_lrs - mdd_bh) * 100:.2f}%",
+)
 
-        # 最大回撤（越低越好）
-        kpi_pair("最大回撤（MDD）", mdd_lrs, mdd_bh, reverse=True)
+# ===== 年化波動率 =====
+metric_pair(
+    "年化波動率",
+    f"{vol_lrs:.2%}",
+    f"{vol_bh:.2%}",
+    delta_lrs=f"{(vol_lrs - vol_bh) * 100:.2f}%",
+    delta_bh=f"{(vol_bh - vol_lrs) * 100:.2f}%",
+)
 
-        # 年化波動率（越低越好）
-        kpi_pair("年化波動率", vol_lrs, vol_bh, reverse=True)
+# ===== 夏普值 =====
+metric_pair(
+    "夏普值（Sharpe）",
+    f"{sharpe_lrs:.2f}",
+    f"{sharpe_bh:.2f}",
+    delta_lrs=f"{(sharpe_lrs - sharpe_bh):.2f}",
+    delta_bh=f"{(sharpe_bh - sharpe_lrs):.2f}",
+)
 
-        # 夏普值（越高越好）
-        kpi_pair("夏普值（Sharpe）", sharpe_lrs, sharpe_bh)
-
-        # 索提諾值（Sortino）（越高越好）
-        kpi_pair("索提諾值（Sortino）", sortino_lrs, sortino_bh)
+# ===== 索提諾 =====
+metric_pair(
+    "索提諾值（Sortino）",
+    f"{sortino_lrs:.2f}",
+    f"{sortino_bh:.2f}",
+    delta_lrs=f"{(sortino_lrs - sortino_bh):.2f}",
+    delta_bh=f"{(sortino_bh - sortino_lrs):.2f}",
+)
 
 
 
@@ -777,4 +804,5 @@ with summary:
             delta=fmt_delta((mdd_lrs - mdd_bh) * 100),
             delta_color="inverse",
         )
+
 
