@@ -665,33 +665,3 @@ if st.button("開始回測 🚀"):
     cal_col.plotly_chart(calmar_fig, use_container_width=True)
 
 
-# ================================
-# KPI 儀表牆：3 × 3
-# ================================
-k1, k2, k3 = st.columns(3)
-k4, k5, k6 = st.columns(3)
-k7, k8, k9 = st.columns(3)
-
-# ---- Row 1 ----
-with k1:
-    st.metric("📈 年化報酬（CAGR）", f"{cagr_lrs:.2%}", delta=f"{(cagr_lrs - cagr_bh) * 100:.2f}%")
-with k2:
-    st.metric("📉 最大回撤（MDD）", f"{mdd_lrs:.2%}", delta=f"{(mdd_bh - mdd_lrs) * 100:.2f}%", delta_color="inverse")
-with k3:
-    st.metric("🛡️ Calmar Ratio", f"{calmar_lrs:.2f}")
-
-# ---- Row 2 ----
-with k4:
-    st.metric("📊 波動度（Volatility）", f"{vol_lrs:.2%}")
-with k5:
-    st.metric("📘 Sharpe Ratio", f"{sharpe_lrs:.2f}")
-with k6:
-    st.metric("📗 Sortino Ratio", f"{sortino_lrs:.2f}")
-
-# ---- Row 3 ----
-with k7:
-    st.metric("💡 Alpha（年化）", f"{alpha:.2%}" if not np.isnan(alpha) else "—")
-with k8:
-    st.metric("📡 Beta", f"{beta:.2f}" if not np.isnan(beta) else "—")
-with k9:
-    st.metric("💵 最終資產（LRS）", format_currency(equity_lrs_final))
