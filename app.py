@@ -396,98 +396,6 @@ if st.button("開始回測 🚀"):
             delta_color="inverse",
         )
 
-# ================================
-# 📊 指標比較（卡片形式）
-# ================================
-st.markdown("## 📊 指標比較（LRS vs Buy & Hold）")
-
-def metric_pair(title, lrs_value, bh_value, delta_lrs=None, delta_bh=None):
-    col1, col2, col3 = st.columns([1, 1, 1])
-
-    with col1:
-        st.markdown(f"### {title}")
-
-    with col2:
-        st.metric(
-            label="LRS 策略",
-            value=lrs_value,
-            delta=delta_lrs,
-            delta_color="normal",
-        )
-
-    with col3:
-        st.metric(
-            label="Buy & Hold",
-            value=bh_value,
-            delta=delta_bh,
-            delta_color="normal",
-        )
-
-    st.markdown("---")
-
-
-# ===== 最終資產 =====
-metric_pair(
-    "最終資產",
-    format_currency(equity_lrs_final),
-    format_currency(equity_bh_final),
-    delta_lrs=f"{final_return_lrs:.2%}",
-    delta_bh=f"{final_return_bh:.2%}",
-)
-
-# ===== 總報酬 =====
-metric_pair(
-    "總報酬",
-    f"{final_return_lrs:.2%}",
-    f"{final_return_bh:.2%}",
-    delta_lrs=f"{(final_return_lrs - final_return_bh) * 100:.2f}%",
-    delta_bh=f"{(final_return_bh - final_return_lrs) * 100:.2f}%",
-)
-
-# ===== 年化報酬 CAGR =====
-metric_pair(
-    "年化報酬（CAGR）",
-    f"{cagr_lrs:.2%}",
-    f"{cagr_bh:.2%}",
-    delta_lrs=f"{(cagr_lrs - cagr_bh) * 100:.2f}%",
-    delta_bh=f"{(cagr_bh - cagr_lrs) * 100:.2f}%",
-)
-
-# ===== 最大回撤 MDD =====
-metric_pair(
-    "最大回撤（MDD）",
-    f"{mdd_lrs:.2%}",
-    f"{mdd_bh:.2%}",
-    delta_lrs=f"{(mdd_bh - mdd_lrs) * 100:.2f}%",
-    delta_bh=f"{(mdd_lrs - mdd_bh) * 100:.2f}%",
-)
-
-# ===== 年化波動率 =====
-metric_pair(
-    "年化波動率",
-    f"{vol_lrs:.2%}",
-    f"{vol_bh:.2%}",
-    delta_lrs=f"{(vol_lrs - vol_bh) * 100:.2f}%",
-    delta_bh=f"{(vol_bh - vol_lrs) * 100:.2f}%",
-)
-
-# ===== 夏普值 =====
-metric_pair(
-    "夏普值（Sharpe）",
-    f"{sharpe_lrs:.2f}",
-    f"{sharpe_bh:.2f}",
-    delta_lrs=f"{(sharpe_lrs - sharpe_bh):.2f}",
-    delta_bh=f"{(sharpe_bh - sharpe_lrs):.2f}",
-)
-
-# ===== 索提諾 =====
-metric_pair(
-    "索提諾值（Sortino）",
-    f"{sortino_lrs:.2f}",
-    f"{sortino_bh:.2f}",
-    delta_lrs=f"{(sortino_lrs - sortino_bh):.2f}",
-    delta_bh=f"{(sortino_bh - sortino_lrs):.2f}",
-)
 
 
 
@@ -804,5 +712,6 @@ with summary:
             delta=fmt_delta((mdd_lrs - mdd_bh) * 100),
             delta_color="inverse",
         )
+
 
 
