@@ -365,36 +365,187 @@ if st.button("開始回測 🚀"):
     fig.update_layout(height=800, showlegend=True, template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
-    # === 美化報表 ===
-    st.markdown(
-        """
-    <style>
-    .custom-table { width:100%; border-collapse:collapse; margin-top:1.2em; font-family:"Noto Sans TC"; }
-    .custom-table th { background:#f5f6fa; padding:12px; font-weight:700; border-bottom:2px solid #ddd; }
-    .custom-table td { text-align:center; padding:10px; border-bottom:1px solid #eee; font-size:15px; }
-    .custom-table tr:nth-child(even) td { background-color:#fafbfc; }
-    .custom-table tr:hover td { background-color:#f1f9ff; }
-    .section-title td { background:#eef4ff; color:#1a237e; font-weight:700; font-size:16px; text-align:left; padding:10px 15px; }
-    </style>
-    """,
-        unsafe_allow_html=True,
+# ================================
+# 📌 1）KPI Summary Cards
+# ================================
+st.markdown("## 📌 回測總覽 Summary")
+
+kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+
+with kpi_col1:
+    st.metric(
+        label="最終資產（LRS）",
+        value=f"{equity_lrs_final:,.0f} 元",
+        delta=f"{final_return_lrs:.2%}"
     )
 
-    html_table = f"""
-    <table class='custom-table'>
-    <thead><tr><th>指標名稱</th><th>LRS 策略</th><th>Buy & Hold</th></tr></thead>
-    <tbody>
-    <tr><td>最終資產</td><td>{equity_lrs_final:,.0f} 元</td><td>{equity_bh_final:,.0f} 元</td></tr>
-    <tr><td>總報酬</td><td>{final_return_lrs:.2%}</td><td>{final_return_bh:.2%}</td></tr>
-    <tr><td>年化報酬</td><td>{cagr_lrs:.2%}</td><td>{cagr_bh:.2%}</td></tr>
-    <tr><td>最大回撤</td><td>{mdd_lrs:.2%}</td><td>{mdd_bh:.2%}</td></tr>
-    <tr><td>年化波動率</td><td>{vol_lrs:.2%}</td><td>{vol_bh:.2%}</td></tr>
-    <tr><td>夏普值</td><td>{sharpe_lrs:.2f}</td><td>{sharpe_bh:.2f}</td></tr>
-    <tr><td>索提諾值</td><td>{sortino_lrs:.2f}</td><td>{sortino_bh:.2f}</td></tr>
-    <tr class='section-title'><td colspan='3'>💹 交易統計</td></tr>
-    <tr><td>買進次數</td><td>{buy_count}</td><td>—</td></tr>
-    <tr><td>賣出次數</td><td>{sell_count}</td><td>—</td></tr>
-    </tbody></table>
-    """
-    st.markdown(html_table, unsafe_allow_html=True)
-    st.success("✅ 回測完成！（台股＋美股統一使用 yfinance，自動拆股調整）")
+with kpi_col2:
+    st.metric(
+        label="年化報酬（CAGR）",
+        value=f"{cagr_lrs:.2%}",
+        delta=f"{(cagr_lrs - cagr_bh) * 100:.2f}%"  # 比 BH 多多少
+    )
+
+with kpi_col3:
+    st.metric(
+        label="最大回撤（LRS）",
+        value=f"{mdd_lrs:.2%}",
+        delta=f"{(mdd_bh - mdd_lrs) * 100:.2f}%",
+        delta_color="inverse"
+    )
+
+
+# ================================
+# 📌 2）Heatmap 指標比較表（LRS vs BH）
+# ================================
+st.markdown("## 📊 指標比較（LRS vs Buy & Hold）")
+
+report_df = pd.DataFrame([
+    ["最終資產", f"{equity_lrs_final:,.0f}", f"{equity_bh_final:,.0f}"],
+    ["總報酬", f"{final_return_lrs:.2%}", f"{final_return_bh:.2%}"],
+    ["年化報酬", f"{cagr_lrs:.2%}", f"{cagr_bh:.2%}"],
+    ["最大回撤", f"{mdd_lrs:.2%}", f"{mdd_bh:.2%}"],
+    ["年化波動率", f"{vol_lrs:.2%}", f"{vol_bh:.2%}"],
+    ["夏普值", f"{sharpe_lrs:.2f}", f"{sharpe_bh:.2f}"],
+    ["索提諾值", f"{sortino_lrs:.2f}", f"{sortino_bh:.2f}"],
+], columns=["指標名稱", "LRS 策略", "Buy & Hold"])
+
+
+# === 職業級 Heatmap（Dark/Light Mode 自適應） ===
+styled = (
+    report_df.style
+        .set_properties(subset=["指標名稱"], **{
+            "font-weight": "bold"
+        })
+        .set_properties(**{
+            "text-align": "center",
+            "border": "1px solid rgba(180,180,180,0.1)"
+        })
+        .background_gradient(
+            cmap="Blues",
+            subset=["LRS 策略", "Buy & Hold"]
+        )
+)
+
+st.dataframe(styled, use_container_width=True)
+
+
+# ================================
+# 📌 3）交易統計（小卡片）
+# ================================
+st.markdown("## 📈 交易統計")
+
+trade_col1, trade_col2 = st.columns(2)
+
+with trade_col1:
+    st.metric(label="📥 買進次數", value=buy_count)
+
+with trade_col2:
+    st.metric(label="📤 賣出次數", value=sell_count)
+# ==========================================
+# 📌 5）策略 vs 指數：風險雷達圖（Radar Chart）
+# ==========================================
+st.markdown("## 🛡️ 策略 vs 指數 — 風險雷達圖")
+
+# 雷達圖需要的指標
+radar_categories = ["年化報酬", "最大回撤", "波動率", "夏普值", "索提諾值"]
+
+# 雷達值（注意：最大回撤要轉成「負值越大越差」，所以用 (1 - MDD) 來正規化）
+radar_lrs = [
+    float(cagr_lrs),
+    float(1 - mdd_lrs),
+    float(1 - vol_lrs),     # 波動越低越好
+    float(sharpe_lrs),
+    float(sortino_lrs),
+]
+
+radar_bh = [
+    float(cagr_bh),
+    float(1 - mdd_bh),
+    float(1 - vol_bh),
+    float(sharpe_bh),
+    float(sortino_bh),
+]
+
+import plotly.graph_objects as go
+
+radar_fig = go.Figure()
+
+radar_fig.add_trace(go.Scatterpolar(
+    r=radar_lrs,
+    theta=radar_categories,
+    fill='toself',
+    name='LRS 策略',
+    line=dict(color='green')
+))
+
+radar_fig.add_trace(go.Scatterpolar(
+    r=radar_bh,
+    theta=radar_categories,
+    fill='toself',
+    name='Buy & Hold',
+    line=dict(color='gray')
+))
+
+radar_fig.update_layout(
+    polar=dict(
+        radialaxis=dict(visible=True)
+    ),
+    showlegend=True,
+    height=500
+)
+
+st.plotly_chart(radar_fig, use_container_width=True)
+
+
+
+# ==========================================
+# 📌 6）Portfolio Summary（最高資產、最低資產、最佳月、最差月）
+# ==========================================
+st.markdown("## 📦 Portfolio Summary — 資產摘要")
+
+# === 計算最高 / 最低資產 ===
+highest_value = df["LRS_Capital"].max()
+lowest_value = df["LRS_Capital"].min()
+
+# === 月報酬計算 ===
+df_monthly = df["Equity_LRS"].resample("M").last().pct_change()
+
+best_month = df_monthly.max()
+worst_month = df_monthly.min()
+
+summ_col1, summ_col2, summ_col3, summ_col4 = st.columns(4)
+
+with summ_col1:
+    st.metric(
+        label="💰 最高資產",
+        value=f"{highest_value:,.0f} 元"
+    )
+
+with summ_col2:
+    st.metric(
+        label="📉 最低資產",
+        value=f"{lowest_value:,.0f} 元"
+    )
+
+with summ_col3:
+    st.metric(
+        label="📈 最佳月份報酬",
+        value=f"{best_month:.2%}"
+    )
+
+with summ_col4:
+    st.metric(
+        label="📉 最差月份報酬",
+        value=f"{worst_month:.2%}",
+        delta_color="inverse"
+    )
+
+
+# ================================
+# 📌 4）回測完成訊息
+# ================================
+st.success("✅ 回測完成！所有資料已產生（含專業儀表板呈現）")
+
+
+
