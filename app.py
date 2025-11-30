@@ -485,11 +485,53 @@ if st.button("開始回測 🚀"):
     fig.update_layout(height=800, showlegend=True, template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
+    # ================================
+    # LRS vs Buy & Hold 回撤比較圖
+    # ================================
+    
+    
+    # 計算回撤（Drawdown）
+    dd_lrs = (df["Equity_LRS"] / df["Equity_LRS"].cummax() - 1) * 100
+    dd_bh = (df["Equity_BuyHold"] / df["Equity_BuyHold"].cummax() - 1) * 100
+    
+    fig_dd_compare = go.Figure()
+    
+    fig_dd_compare.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=dd_lrs,
+            mode="lines",
+            name="LRS 回撤",
+            line=dict(color="#ff7f7f", width=2),
+            fill=None,
+        )
+    )
+    
+    fig_dd_compare.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=dd_bh,
+            mode="lines",
+            name="Buy & Hold 回撤",
+            line=dict(color="#4a90e2", width=2, dash="dot"),
+            fill=None,
+        )
+    )
+    
+    fig_dd_compare.update_layout(
+        height=420,
+        template="plotly_white",
+        yaxis_title="回撤 (%)",
+        xaxis_title="日期",
+        legend=dict(y=1.05, orientation="h")
+    )
+    
+    st.plotly_chart(fig_dd_compare, use_container_width=True)
 
     # ================================
     # 2）KPI Summary Cards（LRS vs Buy&Hold）
     # ================================
-    st.markdown("### 📌 回測總覽 Summary")
+    
 
     asset_gap_pct = ((equity_lrs_final / equity_bh_final) - 1) * 100 if equity_bh_final != 0 else 0.0
     cagr_delta_pct = (cagr_lrs - cagr_bh) * 100 if (not np.isnan(cagr_lrs) and not np.isnan(cagr_bh)) else 0.0
@@ -566,45 +608,3 @@ if st.button("開始回測 🚀"):
 
 
 
-    # ================================
-    # LRS vs Buy & Hold 回撤比較圖
-    # ================================
-    
-    
-    # 計算回撤（Drawdown）
-    dd_lrs = (df["Equity_LRS"] / df["Equity_LRS"].cummax() - 1) * 100
-    dd_bh = (df["Equity_BuyHold"] / df["Equity_BuyHold"].cummax() - 1) * 100
-    
-    fig_dd_compare = go.Figure()
-    
-    fig_dd_compare.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=dd_lrs,
-            mode="lines",
-            name="LRS 回撤",
-            line=dict(color="#ff7f7f", width=2),
-            fill=None,
-        )
-    )
-    
-    fig_dd_compare.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=dd_bh,
-            mode="lines",
-            name="Buy & Hold 回撤",
-            line=dict(color="#4a90e2", width=2, dash="dot"),
-            fill=None,
-        )
-    )
-    
-    fig_dd_compare.update_layout(
-        height=420,
-        template="plotly_white",
-        yaxis_title="回撤 (%)",
-        xaxis_title="日期",
-        legend=dict(y=1.05, orientation="h")
-    )
-    
-    st.plotly_chart(fig_dd_compare, use_container_width=True)
