@@ -567,30 +567,44 @@ if st.button("開始回測 🚀"):
 
 
     # ================================
-    # 12）回撤視覺化 + 風險摘要
+    # LRS vs Buy & Hold 回撤比較圖
     # ================================
-    st.markdown("### 📉 MDD回撤分析")
-
-    dd_series = (df["Equity_LRS"] / df["Equity_LRS"].cummax() - 1) * 100
-
-    dd_fig = go.Figure()
-    dd_fig.add_trace(
+    st.markdown("### 📉 回撤比較（LRS vs Buy & Hold）")
+    
+    # 計算回撤（Drawdown）
+    dd_lrs = (df["Equity_LRS"] / df["Equity_LRS"].cummax() - 1) * 100
+    dd_bh = (df["Equity_BuyHold"] / df["Equity_BuyHold"].cummax() - 1) * 100
+    
+    fig_dd_compare = go.Figure()
+    
+    fig_dd_compare.add_trace(
         go.Scatter(
             x=df.index,
-            y=dd_series,
-            fill="tozeroy",
+            y=dd_lrs,
             mode="lines",
-            name="回撤 (%)",
-            line=dict(color="#ff7f7f"),
+            name="LRS 回撤",
+            line=dict(color="#ff7f7f", width=2),
+            fill=None,
         )
     )
-    dd_fig.update_layout(
+    
+    fig_dd_compare.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=dd_bh,
+            mode="lines",
+            name="Buy & Hold 回撤",
+            line=dict(color="#4a90e2", width=2, dash="dot"),
+            fill=None,
+        )
+    )
+    
+    fig_dd_compare.update_layout(
         height=420,
         template="plotly_white",
         yaxis_title="回撤 (%)",
         xaxis_title="日期",
+        legend=dict(y=1.05, orientation="h")
     )
-    st.plotly_chart(dd_fig, use_container_width=True)
-
-   
-
+    
+    st.plotly_chart(fig_dd_compare, use_container_width=True)
