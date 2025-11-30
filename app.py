@@ -671,6 +671,29 @@ if st.button("開始回測 🚀"):
         legend=dict(orientation="h", y=1.05),
     )
     st.plotly_chart(metric_fig, use_container_width=True)
+    # ================================
+    # 指標說明區塊（極簡風）
+    # ================================
+    st.markdown("""
+    <div style="
+        margin-top: 20px;
+        padding: 16px 20px;
+        border-left: 4px solid #4A90E2;
+        background: rgba(0,0,0,0.03);
+        border-radius: 6px;
+        font-size: 15px;
+        line-height: 1.6;
+    ">
+    <b>📘 指標說明</b><br>
+    <b>CAGR</b>：越大越好（代表長期年化報酬更高）<br>
+    <b>年化波動</b>：越小越好（數值越低代表越穩定）<br>
+    <b>Sharpe</b>：越大越好（每承擔 1 單位風險可換到多少報酬）<br>
+    <b>Sortino</b>：越大越好（只看下跌波動，更能反映「下行風險調整後」報酬）<br>
+    <b>最大回撤（MDD）</b>：越小越好（下跌越少越安全）<br>
+    <b>交易次數</b>：中性指標（多＝較靈敏，少＝較省心）<br>
+    <b>期末資產</b>：越多越好（策略最終成果）<br>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 
