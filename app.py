@@ -485,38 +485,11 @@ if st.button("開始回測 🚀"):
     fig.update_layout(height=800, showlegend=True, template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
 
-    # ================================
-    # 1）LRS 策略信號回放
-    # ================================
-    st.markdown("## 🎯 LRS 策略信號回放")
-
-    records = []
-    for i in range(1, len(df)):
-        if df["Signal"].iloc[i] == 1:
-            reason = (
-                f"收盤價 {df['Price'].iloc[i]:.2f} > MA({window}) {df['MA'].iloc[i]:.2f}，"
-                f"由空頭 → 多頭，產生買進訊號"
-            )
-            records.append([df.index[i], "買進", df["Price"].iloc[i], reason])
-
-        elif df["Signal"].iloc[i] == -1:
-            reason = (
-                f"收盤價 {df['Price'].iloc[i]:.2f} < MA({window}) {df['MA'].iloc[i]:.2f}，"
-                f"由多頭 → 空頭，產生賣出訊號"
-            )
-            records.append([df.index[i], "賣出", df["Price"].iloc[i], reason])
-
-    signal_df = pd.DataFrame(
-        records,
-        columns=["日期", "動作", "價格", "理由"]
-    )
-
-    st.dataframe(signal_df, use_container_width=True)
 
     # ================================
     # 2）KPI Summary Cards（LRS vs Buy&Hold）
     # ================================
-    st.markdown("## 📌 回測總覽 Summary")
+    st.markdown("### 📌 回測總覽 Summary")
 
     asset_gap_pct = ((equity_lrs_final / equity_bh_final) - 1) * 100 if equity_bh_final != 0 else 0.0
     cagr_delta_pct = (cagr_lrs - cagr_bh) * 100 if (not np.isnan(cagr_lrs) and not np.isnan(cagr_bh)) else 0.0
@@ -594,7 +567,6 @@ if st.button("開始回測 🚀"):
     # ================================
     # 3）交易統計（小卡片）
     # ================================
-    st.markdown("## 📈 交易統計")
 
     trade_col1, trade_col2 = st.columns(2)
     with trade_col1:
@@ -606,7 +578,6 @@ if st.button("開始回測 🚀"):
     # ================================
     # 5）Portfolio Summary — 資產摘要
     # ================================
-    st.markdown("## 📦 Portfolio Summary — 資產摘要")
 
     highest_value = df["LRS_Capital"].max()
     lowest_value = df["LRS_Capital"].min()
