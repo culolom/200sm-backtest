@@ -676,38 +676,68 @@ if st.button("開始回測 🚀"):
     # ================================
     st.markdown("""
     <style>
-    .info-card {
-        margin-top: 20px;
-        padding: 20px 24px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        font-size: 15px;
-        line-height: 1.7;
+    .saas-card {
+        margin-top: 28px;
+        padding: 26px 30px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 14px;
+        font-size: 15.5px;
+        line-height: 1.75;
+        color: #e6e6e6;
     }
-    .info-card-title {
-        font-size: 17px;
+    
+    .saas-title {
+        font-size: 18px;
         font-weight: 600;
-        margin-bottom: 10px;
+        margin-bottom: 18px;
+        color: #ffffff;
     }
-    .info-line {
-        margin: 2px 0;
+    
+    /* 雙欄布局 */
+    .saas-grid {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        row-gap: 10px;
+        column-gap: 24px;
+        align-items: start;
+    }
+    
+    .saas-key {
+        font-weight: 600;
+        color: #ffffff;
+    }
+    
+    .saas-value {
+        color: #dcdcdc;
     }
     </style>
     
-    <div class="info-card">
-        <div class="info-card-title">📘 指標說明</div>
+    <div class="saas-card">
+        <div class="saas-title">📘 指標說明（SaaS 專業版）</div>
     
-        <div class="info-line"><b>CAGR</b>：越大越好</div>
-        <div class="info-line"><b>年化波動</b>：越小越好</div>
-        <div class="info-line"><b>Sharpe</b>：越大越好</div>
-        <div class="info-line"><b>Sortino</b>：越大越好</div>
-        <div class="info-line"><b>最大回撤（MDD）</b>：越小越好</div>
-        <div class="info-line"><b>交易次數</b>：中性（多＝敏感、少＝省心）</div>
-        <div class="info-line"><b>期末資產</b>：越多越好</div>
+        <div class="saas-grid">
+            <div class="saas-key">CAGR</div>
+            <div class="saas-value">越大越好（代表年化報酬越高）</div>
+    
+            <div class="saas-key">年化波動</div>
+            <div class="saas-value">越小越好（數值越低越穩定）</div>
+    
+            <div class="saas-key">Sharpe Ratio</div>
+            <div class="saas-value">越大越好（每承擔 1 單位風險可換多少報酬）</div>
+    
+            <div class="saas-key">Sortino Ratio</div>
+            <div class="saas-value">越大越好（只計算下跌風險，更反映策略穩定度）</div>
+    
+            <div class="saas-key">最大回撤（MDD）</div>
+            <div class="saas-value">越小越好（越抗跌、越安全）</div>
+    
+            <div class="saas-key">交易次數</div>
+            <div class="saas-value">中性指標（多＝較敏感、少＝較省心）</div>
+    
+            <div class="saas-key">期末資產</div>
+            <div class="saas-value">越多越好（策略最終成果）</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
-
     
-    
-
