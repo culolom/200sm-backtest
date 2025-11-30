@@ -675,25 +675,38 @@ if st.button("開始回測 🚀"):
     # 指標說明區塊（極簡風）
     # ================================
     st.markdown("""
-    <div style="
-        margin-top: 20px;
-        padding: 16px 20px;
-        border-left: 4px solid #4A90E2;
-        background: rgba(0,0,0,0.03);
-        border-radius: 6px;
+    <style>
+    .metric-note {
+        margin-top: 18px;
+        padding: 14px 18px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.03);
         font-size: 15px;
-        line-height: 1.6;
-    ">
-    <b>📘 指標說明</b><br>
-    <b>CAGR</b>：越大越好（代表長期年化報酬更高）<br>
-    <b>年化波動</b>：越小越好（數值越低代表越穩定）<br>
-    <b>Sharpe</b>：越大越好（每承擔 1 單位風險可換到多少報酬）<br>
-    <b>Sortino</b>：越大越好（只看下跌波動，更能反映「下行風險調整後」報酬）<br>
-    <b>最大回撤（MDD）</b>：越小越好（下跌越少越安全）<br>
-    <b>交易次數</b>：中性指標（多＝較靈敏，少＝較省心）<br>
-    <b>期末資產</b>：越多越好（策略最終成果）<br>
+        line-height: 1.7;
+    }
+    .metric-note b {
+        color: #ffffffdd;
+    }
+    .metric-note hr {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.12);
+        margin: 8px 0 14px 0;
+    }
+    </style>
+    
+    <div class="metric-note">
+    <b>📘 指標說明</b>
+    <hr>
+    <b>CAGR</b>：越大越好  
+    <b>年化波動</b>：越小越好  
+    <b>Sharpe</b>：越大越好  
+    <b>Sortino</b>：越大越好  
+    <b>最大回撤（MDD）</b>：越小越好  
+    <b>交易次數</b>：中性（多＝敏感、少＝省心）  
+    <b>期末資產</b>：越多越好  
     </div>
     """, unsafe_allow_html=True)
-
-
+    
+    
 
