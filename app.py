@@ -1,108 +1,72 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
-from hamster_data.loader import load_price, list_symbols
+from FinMind.data import DataLoader
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
+st.set_page_config(page_title="大盤融資抄底監控", layout="wide")
 
-st.set_page_config(page_title="200SMA 回測系統", page_icon="📈", layout="wide")
-st.title("📈 200SMA Strategy 回測系統（CSV 模式）")
+# 1. 側邊欄參數設定
+with st.sidebar:
+    st.header("回測參數設定")
+    start_date = st.date_input("開始日期", value=pd.to_datetime("2020-01-01"))
+    buy_line = st.slider("抄底觸發線 (維持率 %)", 130, 160, 150)
+    sell_line = st.slider("獲利/警示線 (維持率 %)", 165, 185, 175)
+    # 這裡可以加入 API Token (如果有註冊 FinMind)
+    api_token = st.text_input("FinMind Token (選填)", type="password")
 
+# 2. 資料抓取函數
+@st.cache_data(ttl=3600) # 快取一小時，避免重複請求
+def get_full_data(start_date, token):
+    dl = DataLoader()
+    if token:
+        dl.login(api_variant="token", token=token)
+    
+    # 抓融資資料
+    df_margin = dl.taiwan_stock_margin_purchase_short_sale(
+        stock_id="TAIEX", start_date=str(start_date)
+    )
+    
+    # 抓大盤收盤價
+    df_price = dl.taiwan_stock_daily(
+        stock_id="TAIEX", start_date=str(start_date)
+    )
+    
+    # 合併資料 (根據日期)
+    df = pd.merge(df_price[['date', 'close']], 
+                  df_margin[['date', 'MarginPurchaseMaintenance']], 
+                  on='date')
+    return df
 
-# -------------------------
-# UI：商品 + 日期選擇
-# -------------------------
-symbols = list_symbols()
-if not symbols:
-    st.error("⚠ 未找到資料。請把 CSV 放到 data/ 資料夾。")
-    st.stop()
+# 3. 執行抓取
+try:
+    df = get_full_data(start_date, api_token)
+    st.success(f"成功抓取 {len(df)} 筆交易日資料！")
 
-symbol = st.selectbox("選擇商品", symbols, index=0)
-df = load_price(symbol)
+    # 4. 繪製圖表
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                        vertical_spacing=0.05, 
+                        subplot_titles=("加權指數 K 線", "大盤融資維持率"),
+                        row_heights=[0.7, 0.3])
 
-start_date = st.date_input("開始日期", df.index.min())
-end_date = st.date_input("結束日期", df.index.max())
+    # 上圖：收盤價
+    fig.add_trace(go.Scatter(x=df['date'], y=df['close'], name="加權指數", line=dict(color='gold')), row=1, col=1)
 
-window = st.slider("均線天數 (SMA)", 10, 250, 200)
-initial_capital = st.number_input("投入本金（元）", value=10000, step=1000)
+    # 下圖：維持率
+    fig.add_trace(go.Scatter(x=df['date'], y=df['MarginPurchaseMaintenance'], 
+                             name="融資維持率", fill='tozeroy'), row=2, col=1)
 
-
-# -------------------------
-# 回測按鈕
-# -------------------------
-if st.button("開始回測 🚀"):
-
-    df_bt = df.loc[str(start_date):str(end_date)].copy()
-
-    if len(df_bt) < window:
-        st.error("資料天數不足，無法計算均線！")
-        st.stop()
-
-    # MA
-    df_bt["MA"] = df_bt["Price"].rolling(window).mean()
-    df_bt = df_bt.dropna().copy()
-
-    # 訊號
-    signal = []
-    current = 1  # 第一筆強制持有
-
-    for i in range(len(df_bt)):
-        if i == 0:
-            signal.append(1)
-            continue
-
-        prev_price = df_bt["Price"].iloc[i - 1]
-        prev_ma = df_bt["MA"].iloc[i - 1]
-        price = df_bt["Price"].iloc[i]
-        ma = df_bt["MA"].iloc[i]
-
-        if price > ma and prev_price <= prev_ma:
-            current = 1
-        elif price < ma and prev_price >= prev_ma:
-            current = 0
-
-        signal.append(current)
-
-    df_bt["Position"] = signal
-    df_bt["Strategy_Return"] = df_bt["Return"] * df_bt["Position"]
-
-    # 資金曲線
-    df_bt["Equity_SMA"] = (1 + df_bt["Strategy_Return"]).cumprod()
-    df_bt["Equity_BH"] = (1 + df_bt["Return"]).cumprod()
-
-    # 調整本⾦
-    df_bt["Capital_SMA"] = df_bt["Equity_SMA"] * initial_capital
-    df_bt["Capital_BH"] = df_bt["Equity_BH"] * initial_capital
-
-    # -------------------------
-    # KPI
-    # -------------------------
-    final_sma = df_bt["Capital_SMA"].iloc[-1]
-    final_bh = df_bt["Capital_BH"].iloc[-1]
-
-    st.subheader("📌 核心績效")
-    col1, col2 = st.columns(2)
-    col1.metric("200SMA 最終資產", f"{final_sma:,.0f} 元")
-    col2.metric("Buy & Hold 最終資產", f"{final_bh:,.0f} 元")
-
-    # CAGR
-    days = (df_bt.index[-1] - df_bt.index[0]).days
-    years = days / 365
-
-    cagr_sma = df_bt["Equity_SMA"].iloc[-1] ** (1 / years) - 1
-    cagr_bh = df_bt["Equity_BH"].iloc[-1] ** (1 / years) - 1
-
-    col1, col2 = st.columns(2)
-    col1.metric("200SMA CAGR", f"{cagr_sma:.2%}")
-    col2.metric("Buy&Hold CAGR", f"{cagr_bh:.2%}")
-
-    # -------------------------
-    # 圖表
-    # -------------------------
-    st.subheader("📈 資金曲線")
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_bt.index, y=df_bt["Equity_SMA"], name="200SMA"))
-    fig.add_trace(go.Scatter(x=df_bt.index, y=df_bt["Equity_BH"], name="Buy&Hold"))
-
+    # 加上你的「標準線」
+    fig.add_hline(y=buy_line, line_dash="dash", line_color="red", 
+                  annotation_text=f"抄底線 {buy_line}%", row=2, col=1)
+    
+    fig.update_layout(height=800, template="plotly_dark", showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
+
+    # 5. 簡單數據統計
+    current_ratio = df['MarginPurchaseMaintenance'].iloc[-1]
+    st.metric("當前融資維持率", f"{current_ratio}%", 
+              delta=f"{round(current_ratio - buy_line, 2)}% 距離抄底線")
+
+except Exception as e:
+    st.error(f"資料抓取失敗: {e}")
