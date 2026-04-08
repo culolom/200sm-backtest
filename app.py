@@ -9,68 +9,71 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="倉鼠量化戰情室：融資抄底監控", layout="wide")
 
 st.title("🐹 倉鼠量化戰情室：大盤融資維持率監控")
-st.markdown("> **穩定性更新 2.0：** 加強 API 異常診斷與 Token 容錯。")
+st.markdown("> **修正更新：** 解決 422 參數錯誤問題，強化 API 通訊穩定度。")
 
 # --- 側邊欄參數 ---
 with st.sidebar:
     st.header("⚙️ 設定參數")
+    # 建議回測時間拉長，例如 2020 年
     default_start = datetime.now() - timedelta(days=3*365)
     start_date = st.date_input("資料起始日期", value=default_start)
     
     st.divider()
     buy_line = st.slider("🔴 抄底觸發線 (%)", 130, 160, 150)
-    sell_line = st.slider("🟢 警示過熱線 (%)", 165, 185, 175)
     
     st.divider()
-    # 自動清除 Token 可能帶有的前後空白
+    # 自動清除 Token 前後空白
     raw_token = st.text_input("FinMind Token (建議填寫)", type="password")
     api_token = raw_token.strip()
 
-# --- 【核心 API 抓取邏輯】 ---
-def call_finmind_api(dataset, data_id=None, start_dt=None, token=""):
+# --- 【核心 API 抓取邏輯：修正 422 關鍵】 ---
+def call_finmind_api(dataset, data_id="", start_dt=None, token=""):
     url = "https://api.finmindtrade.com/api/v4/data"
+    
+    # 修正點：確保即使沒有 data_id，也要傳送一個空字串，避開 422 錯誤
     params = {
         "dataset": dataset,
+        "data_id": data_id if data_id else "",
         "start_date": str(start_dt),
         "token": token,
     }
-    if data_id:
-        params["data_id"] = data_id
-        
+    
     try:
         res = requests.get(url, params=params, timeout=15)
-        # 檢查 HTTP 狀態碼
+        
+        # 如果不是 200，抓取伺服器回傳的詳細錯誤訊息
         if res.status_code != 200:
-            st.error(f"連線失敗，HTTP 狀態碼: {res.status_code}")
+            try:
+                error_detail = res.json()
+            except:
+                error_detail = res.text
+            st.error(f"❌ API 請求失敗！狀態碼: {res.status_code}")
+            st.warning(f"伺服器訊息: {error_detail}")
             return pd.DataFrame()
             
         res_data = res.json()
-        
-        # 診斷：如果 API 回傳不是 success，顯示完整內容
         if res_data.get('msg') == 'success':
             return pd.DataFrame(res_data['data'])
         else:
-            # 這裡能幫我們抓出到底 API 說了什麼（例如：Invalid Token）
-            st.error(f"API 拒絕請求 (Dataset: {dataset})")
-            st.warning(f"原始回傳內容: {res_data}")
+            st.error(f"⚠️ API 邏輯錯誤: {res_data.get('msg')}")
             return pd.DataFrame()
             
     except Exception as e:
-        st.error(f"系統發生異常: {e}")
+        st.error(f"🚨 系統連線異常: {e}")
         return pd.DataFrame()
 
 @st.cache_data(ttl=3600)
 def fetch_full_data(start_dt, token):
-    # 1. 抓取大盤價格
+    # 1. 抓取大盤價格 (代號 TAIEX)
     df_price = call_finmind_api("TaiwanStockDaily", "TAIEX", start_dt, token)
     
-    # 2. 抓取大盤融資維持率
-    df_margin = call_finmind_api("TaiwanStockMarginPurchaseMaintenance", None, start_dt, token)
+    # 2. 抓取大盤融資維持率 (不需特定代號，但傳送空字串)
+    df_margin = call_finmind_api("TaiwanStockMarginPurchaseMaintenance", "", start_dt, token)
     
-    if df_price is None or df_price.empty or df_margin is None or df_margin.empty:
+    if df_price.empty or df_margin.empty:
         return None
 
-    # 日期轉換與合併
+    # 日期與資料對齊
     df_price['date'] = pd.to_datetime(df_price['date'])
     df_margin['date'] = pd.to_datetime(df_margin['date'])
     
@@ -83,25 +86,16 @@ def fetch_full_data(start_dt, token):
     return df.sort_values('date')
 
 # --- 主程式執行 ---
-if st.button("🚀 執行/重新整理資料"):
-    st.cache_data.clear() # 強制清除舊快取
-
 data = fetch_full_data(start_date, api_token)
 
 if data is not None and not data.empty:
     curr_price = data['close'].iloc[-1]
     curr_ratio = data['MarginPurchaseMaintenance'].iloc[-1]
     
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     c1.metric("加權指數 (TAIEX)", f"{curr_price:,.2f}")
     c2.metric("大盤融資維持率", f"{curr_ratio:.2f}%")
-    
-    # 簡單的風險提示
-    risk = "🟢 正常"
-    if curr_ratio < buy_line: risk = "🔴 斷頭潮 (抄底機會)"
-    c3.metric("籌碼狀態", risk)
 
-    # 繪製圖表
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1, 
                         subplot_titles=("加權指數", "大盤融資維持率 (%)"), row_heights=[0.7, 0.3])
 
@@ -112,4 +106,4 @@ if data is not None and not data.empty:
     fig.update_layout(height=700, template="plotly_dark", showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
 else:
-    st.info("⌛ 正在等待 API 回應。如果持續看到此訊息，請檢查您的 Token 是否正確。")
+    st.info("⌛ 正在抓取資料... 若長時間無反應請檢查上方 Token 或錯誤提示。")
