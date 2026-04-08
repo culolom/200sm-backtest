@@ -1,10 +1,5 @@
-FinMind
-yfinance
-pandas
-numpy
-plotly
 streamlit
-matplotlib
-python-dateutil
-requests
-streamlit-lightweight-charts
+pandas
+FinMind
+plotly
+tqdm
